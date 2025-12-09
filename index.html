@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanctioner Analysis Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary: #2c3e50; --secondary: #34495e; --accent: #3498db;
+            --success: #27ae60; --danger: #e74c3c; --warning: #f39c12;
+            --bg: #eef2f5;
+        }
+
+        body { font-family: 'Roboto', sans-serif; background-color: var(--bg); margin: 0; color: #333; height: 100vh; display: flex; flex-direction: column; }
+        
+        .navbar { background: var(--primary); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 60px; }
+        .brand { font-size: 1.2rem; font-weight: 700; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+        
+        .tabs-bar { background: #dfe6e9; padding: 10px 20px 0 20px; display: flex; gap: 5px; border-bottom: 1px solid #ccc; overflow-x: auto; }
+        .tab { background: #b2bec3; padding: 10px 20px; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 500; font-size: 0.9rem; color: #2d3436; display: flex; align-items: center; gap: 10px; min-width: 120px; justify-content: space-between; }
+        .tab.active { background: white; color: var(--primary); font-weight: 700; border-top: 3px solid var(--accent); }
+        .tab-close { font-size: 0.8rem; opacity: 0.5; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+        .tab-close:hover { opacity: 1; background: rgba(0,0,0,0.1); color: var(--danger); }
+        .new-tab-btn { background: transparent; border: none; font-size: 1.2rem; color: var(--secondary); cursor: pointer; padding: 0 15px; }
+
+        .tab-content-container { flex: 1; overflow: hidden; position: relative; }
+        .case-view { display: none; height: 100%; padding: 20px; overflow-y: auto; grid-template-columns: 320px 1fr; gap: 20px; max-width: 1600px; margin: 0 auto; box-sizing: border-box; }
+        .case-view.active { display: grid; }
+        
+        .sidebar { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); height: fit-content; }
+        .sidebar-header { font-size: 0.85rem; font-weight: 700; color: #95a5a6; text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px; display: flex; justify-content: space-between; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--secondary); margin-bottom: 5px; }
+        .form-group input, .form-group textarea { width: 100%; padding: 8px 10px; border: 1px solid #bdc3c7; border-radius: 4px; box-sizing: border-box; }
+        .year-input-group { display: flex; align-items: center; gap: 10px; background: #f0f3f6; padding: 10px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
+        .year-input-group input { font-size: 1.2rem; font-weight: 700; color: var(--primary); text-align: center; border: none; background: transparent; width: 80px; }
+
+        .data-display { background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #eee; margin-bottom: 20px; font-size: 0.85rem; }
+        .data-row { display: grid; grid-template-columns: 1fr 100px; gap: 10px; margin-bottom: 8px; align-items: center; }
+        .manual-input { width: 100%; padding: 4px; font-family: monospace; font-weight: 700; color: var(--primary); border: 1px solid #ddd; border-radius: 4px; text-align: right; background: white; }
+
+        .btn-analyze { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 4px; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-analyze:hover { background: #2980b9; transform: translateY(-2px); }
+
+        /* Dashboard */
+        .dashboard-area { display: grid; grid-template-rows: auto 1fr; gap: 20px; padding-bottom: 40px; }
+        .empty-state { text-align: center; padding-top: 80px; color: #bdc3c7; }
+        
+        .verdict-header { background: white; padding: 20px; border-radius: 8px; border-left: 6px solid var(--primary); box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .narrative-card { background: #fff; padding: 20px; border-radius: 8px; margin-top: 20px; line-height: 1.6; color: #444; border-top: 4px solid var(--success); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        /* Layout Grid + Gráfico */
+        .results-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 20px; }
+        .metrics-column { display: flex; flex-direction: column; gap: 15px; }
+        .chart-column { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee; display: flex; flex-direction: column; }
+
+        .kpi-card { background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; }
+        .kpi-val { font-size: 1.4rem; font-weight: 700; color: var(--dark); }
+        .kpi-label { font-size: 0.75rem; text-transform: uppercase; color: #95a5a6; font-weight: 600; text-align: left; }
+
+        .analysis-split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .analysis-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .box-header { font-size: 0.8rem; font-weight: 700; color: #7f8c8d; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .theory-tag { padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; color: white; display: inline-block; margin-bottom: 10px; }
+
+        /* Modal Styles */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+        .modal-content { background: white; width: 80%; max-width: 900px; height: 85%; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
+        .modal-header { background: var(--primary); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { display: flex; flex: 1; overflow: hidden; }
+        .help-sidebar { width: 200px; background: #f8f9fa; border-right: 1px solid #ddd; padding: 20px 0; }
+        .help-nav-item { padding: 12px 20px; cursor: pointer; color: var(--secondary); font-weight: 500; border-left: 4px solid transparent; }
+        .help-nav-item.active { background: white; color: var(--accent); border-left-color: var(--accent); font-weight: 700; }
+        .help-content-area { flex: 1; padding: 30px; overflow-y: auto; }
+        .help-section { display: none; }
+        .help-section.active { display: block; }
+        .math-box { background: #f1f8ff; border-left: 4px solid var(--accent); padding: 15px; margin: 15px 0; font-family: monospace; color: #2c3e50; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand"><i class="fas fa-globe-americas"></i>Analista de Sanções</div>
+        <button onclick="openHelp()" style="background:transparent; border:1px solid rgba(255,255,255,0.3); color:white; padding:5px 15px; border-radius:4px; cursor:pointer;">
+            <i class="fas fa-book"></i> Guia & Metodologia
+        </button>
+    </nav>
+
+    <div class="tabs-bar" id="tabsBar">
+        <button class="new-tab-btn" onclick="createNewTab()" title="Nova Análise"><i class="fas fa-plus"></i></button>
+    </div>
+
+    <div class="tab-content-container" id="tabContentContainer"></div>
+
+    <div class="modal-overlay" id="helpModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span><i class="fas fa-graduation-cap"></i> Documentação</span>
+                <span onclick="closeHelp()" style="cursor:pointer;">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="help-sidebar">
+                    <div class="help-nav-item active" onclick="switchHelpTab('guide')">Como Usar</div>
+                    <div class="help-nav-item" onclick="switchHelpTab('method')">Metodologia</div>
+                </div>
+                <div class="help-content-area">
+                    <div id="help-guide" class="help-section active">
+                        <h3>📖 Guia</h3>
+                        <p>Preencha os dados (manuais em Bilhões) e analise a resposta provável do país sancionado.</p>
+                    </div>
+                    <div id="help-method" class="help-section">
+                        <h3>📐 Cálculos</h3>
+                        <p>A "Dependência" é calculada como % do PIB. O Gráfico visualiza essa proporção.</p>
+                        <div class="math-box">Dependência = (Comércio / PIB) * 100</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tabs = [];
+        let activeTabId = null;
+        let tabCounter = 0;
+        let chartInstances = {}; // Armazena instâncias dos gráficos para destruir antes de recriar
+
+        function createNewTab() {
+            tabCounter++;
+            const tabId = `case-${tabCounter}`;
+            tabs.push({ id: tabId });
+
+            const tabButton = document.createElement('div');
+            tabButton.className = 'tab active';
+            tabButton.id = `btn-${tabId}`;
+            tabButton.innerHTML = `<span onclick="switchTab('${tabId}')"><i class="far fa-file-alt"></i> <span id="title-${tabId}">Caso ${tabCounter}</span></span> <span class="tab-close" onclick="closeTab('${tabId}')"><i class="fas fa-times"></i></span>`;
+            document.getElementById('tabsBar').insertBefore(tabButton, document.getElementById('tabsBar').lastElementChild);
+
+            const view = document.createElement('div');
+            view.className = 'case-view active';
+            view.id = `view-${tabId}`;
+            view.innerHTML = generateCaseHTML(tabId);
+            document.getElementById('tabContentContainer').appendChild(view);
+
+            switchTab(tabId);
+        }
+
+        function closeTab(tabId) {
+            document.getElementById(`btn-${tabId}`).remove();
+            document.getElementById(`view-${tabId}`).remove();
+            tabs = tabs.filter(t => t.id !== tabId);
+            if (activeTabId === tabId && tabs.length > 0) switchTab(tabs[tabs.length - 1].id);
+            else if (tabs.length === 0) createNewTab();
+        }
+
+        function switchTab(tabId) {
+            activeTabId = tabId;
+            document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.case-view').forEach(v => v.classList.remove('active'));
+            document.getElementById(`btn-${tabId}`).classList.add('active');
+            document.getElementById(`view-${tabId}`).classList.add('active');
+        }
+
+        function generateCaseHTML(id) {
+            return `
+                <aside class="sidebar">
+                    <div class="sidebar-header"><span>Parâmetros</span> <i class="fas fa-sliders-h"></i></div>
+                    <form onsubmit="event.preventDefault(); runAnalysis('${id}');">
+                        <div class="year-input-group"><label>📅 Ano:</label><input type="number" id="year-${id}" value="2023" onchange="refreshData('${id}')"></div>
+                        <div class="form-group"><label>🛡️ Sancionador</label><input type="text" id="sanctioner-${id}" placeholder="Ex: USA" onblur="fetchData('${id}', 'SANCTIONER')"></div>
+                        <div class="form-group"><label>🎯 País Alvo</label><input type="text" id="target-${id}" placeholder="Ex: China" onblur="fetchData('${id}', 'TARGET')"></div>
+                        
+                        <div class="data-display">
+                            <div style="font-size:0.75rem; color:#7f8c8d; margin-bottom:10px; text-align:center;"><i class="fas fa-info-circle"></i> Valores Manuais (Bilhões US$)</div>
+                            <div class="data-row"><span>PIB Alvo:</span> <input type="number" step="any" class="manual-input" id="inp_gdpT-${id}"></div>
+                            <div class="data-row"><span>PIB Sancionador:</span> <input type="number" step="any" class="manual-input" id="inp_gdpS-${id}"></div>
+                            <div class="data-row"><span>Imp. Totais Alvo:</span> <input type="number" step="any" class="manual-input" id="inp_impT-${id}"></div>
+                            <div class="data-row"><span>Reservas Alvo:</span> <input type="number" step="any" class="manual-input" id="inp_resT-${id}"></div>
+                            <div class="data-row"><span>Comércio Bilateral:</span> <input type="number" step="any" class="manual-input" id="inp_trade-${id}" style="color:var(--accent); font-weight:bold;"></div>
+                        </div>
+
+                        <div class="form-group"><label>Retórica do Alvo</label><textarea id="rhetoric-${id}" rows="3" placeholder="Discurso oficial..."></textarea></div>
+                        <button class="btn-analyze" id="btnRun-${id}"><i class="fas fa-play"></i> Analisar Resposta</button>
+                    </form>
+                </aside>
+
+                <main class="dashboard-area" id="resultArea-${id}">
+                    <div class="empty-state"><i class="fas fa-chart-pie" style="font-size: 3rem;"></i><h3>Aguardando Dados</h3></div>
+                </main>
+            `;
+        }
+
+        // --- LÓGICA DO GRÁFICO (CHART.JS) ---
+        function renderChart(id, gdp, trade, reserves) {
+            const ctx = document.getElementById(`chart-${id}`).getContext('2d');
+            
+            // Destrói gráfico anterior se existir
+            if (chartInstances[id]) {
+                chartInstances[id].destroy();
+            }
+
+            // Converter para logarítmico seria uma opção, mas linear mostra melhor a pequenez do comércio
+            chartInstances[id] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['PIB Total (Alvo)', 'Reservas Int.', 'Comércio c/ Sancionador'],
+                    datasets: [{
+                        label: 'Bilhões (USD)',
+                        data: [gdp / 1e9, reserves / 1e9, trade / 1e9], // Tudo em Bilhões
+                        backgroundColor: [
+                            '#34495e', // PIB (Escuro)
+                            '#27ae60', // Reservas (Verde)
+                            '#e74c3c'  // Comércio (Vermelho - Risco)
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Gráfico Horizontal para facilitar leitura dos nomes
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Contexto de Dependência Econômica' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.raw.toFixed(2) + ' Bi USD';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function fetchData(id, type) {
+            const val = document.getElementById(type === 'TARGET' ? `target-${id}` : `sanctioner-${id}`).value;
+            const year = document.getElementById(`year-${id}`).value;
+            if(val.length < 2) return;
+            
+            try {
+                const res = await fetch(`http://localhost:5000/api/country/${val}?year=${year}`);
+                const data = await res.json();
+                if(!data.error) {
+                    const setVal = (eid, v) => document.getElementById(eid).value = v ? (v/1e9).toFixed(2) : "";
+                    if(data.gdp_nominal) setVal(type === 'TARGET' ? `inp_gdpT-${id}` : `inp_gdpS-${id}`, data.gdp_nominal);
+                    if(type === 'TARGET') {
+                        setVal(`inp_impT-${id}`, data.imports_total);
+                        setVal(`inp_resT-${id}`, data.international_reserves);
+                    }
+                }
+                checkTrade(id);
+            } catch(e) {}
+        }
+
+        async function checkTrade(id) {
+            const t = document.getElementById(`target-${id}`).value;
+            const s = document.getElementById(`sanctioner-${id}`).value;
+            if(t && s) {
+                try {
+                    const res = await fetch(`http://localhost:5000/api/trade?target=${t}&sanctioner=${s}&year=${document.getElementById(`year-${id}`).value}`);
+                    const d = await res.json();
+                    if(d.total_trade) document.getElementById(`inp_trade-${id}`).value = (d.total_trade/1e9).toFixed(2);
+                } catch(e) {}
+            }
+        }
+
+        async function runAnalysis(id) {
+            const getRaw = (eid) => { const v = document.getElementById(eid).value; return v ? parseFloat(v)*1e9 : ""; };
+            const payload = {
+                target: document.getElementById(`target-${id}`).value,
+                sanctioner: document.getElementById(`sanctioner-${id}`).value,
+                year: document.getElementById(`year-${id}`).value,
+                rhetoric: document.getElementById(`rhetoric-${id}`).value,
+                manual_gdp_target: getRaw(`inp_gdpT-${id}`),
+                manual_gdp_sanctioner: getRaw(`inp_gdpS-${id}`),
+                manual_imports_target: getRaw(`inp_impT-${id}`),
+                manual_reserves_target: getRaw(`inp_resT-${id}`),
+                manual_trade_val: getRaw(`inp_trade-${id}`)
+            };
+
+            const btn = document.getElementById(`btnRun-${id}`);
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+            
+            try {
+                const res = await fetch('http://localhost:5000/api/analyze', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                const json = await res.json();
+                renderReport(id, json);
+            } catch(e) { alert("Erro na análise."); }
+            finally { btn.innerHTML = '<i class="fas fa-play"></i> Analisar Resposta'; }
+        }
+
+        function renderReport(id, data) {
+            const a = data.analysis;
+            const m = data.metrics;
+            const colors = { 'NEORREALISMO': '#34495e', 'LIBERALISMO': '#3498db', 'REALISMO DEFENSIVO': '#2c3e50', 'INSTITUCIONALISMO': '#2980b9' };
+            const mainColor = colors[a.final_theory.split(" ")[0]] || '#7f8c8d';
+
+            // HTML DO DASHBOARD
+            const html = `
+                <div class="verdict-header" style="border-left-color: ${mainColor}">
+                    <div><small style="text-transform:uppercase; color:#999; font-weight:bold;">Previsão da Resposta de ${document.getElementById(`target-${id}`).value}</small><h2>${a.final_theory}</h2></div>
+                    <span style="background:${mainColor}; color:white; padding:5px 15px; border-radius:20px; font-size:0.8rem;">${a.conclusion}</span>
+                </div>
+
+                <div class="results-grid">
+                    <div class="metrics-column">
+                        <div class="kpi-card"><div class="kpi-label">Assimetria<br>de Poder</div><div class="kpi-val">${m.asymmetry.toFixed(1)}x</div></div>
+                        <div class="kpi-card"><div class="kpi-label">Dependência<br>Comercial</div><div class="kpi-val" style="color:${m.dependency > 5 ? '#e74c3c' : '#27ae60'}">${m.dependency.toFixed(2)}%</div></div>
+                        <div class="kpi-card"><div class="kpi-label">Resiliência<br>(Meses)</div><div class="kpi-val">${data.data.resilience_months.toFixed(1)} m</div></div>
+                        
+                        <div class="analysis-box" style="margin-top:auto;">
+                             <div class="box-header" style="color:#e67e22;"><i class="fas fa-comments"></i> Análise do Discurso</div>
+                             <span class="theory-tag" style="background:#e67e22;">${a.rhetoric_theory}</span>
+                             <p style="font-size:0.9rem; color:#555;">${a.rhetoric_explanation}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-column">
+                        <div style="font-size:0.8rem; font-weight:700; color:#7f8c8d; margin-bottom:10px; text-transform:uppercase;">Visualização da Dependência</div>
+                        <div style="flex:1; min-height:200px; position:relative;">
+                            <canvas id="chart-${id}"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="narrative-card">
+                    <h4 style="margin:0 0 10px 0; color:${mainColor}; border-bottom:1px solid #eee;">Diagnóstico Detalhado da Reação</h4>
+                    ${a.narrative}
+                </div>
+            `;
+            document.getElementById(`resultArea-${id}`).innerHTML = html;
+
+            // RENDERIZA O GRÁFICO (Passando os valores brutos para o chart.js processar)
+            // Nota: data.data.gdp_target vem em unidades, não bilhões. O gráfico converte.
+            renderChart(id, data.data.gdp_target, data.data.trade, data.data.reserves);
+        }
+
+        // Funções do Modal
+        function openHelp() { document.getElementById('helpModal').style.display = 'flex'; }
+        function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
+        function switchHelpTab(t) { 
+            document.querySelectorAll('.help-section').forEach(e => e.classList.remove('active'));
+            document.getElementById(`help-${t}`).classList.add('active'); 
+        }
+        window.onclick = (e) => { if(e.target == document.getElementById('helpModal')) closeHelp(); };
+        
+        window.onload = createNewTab;
+    </script>
+</body>
+</html>
