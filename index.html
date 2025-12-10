@@ -1,530 +1,530 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sanctioner Analysis Tool</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Sanctioner Analysis Tool</title>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <style>
-        :root {
-            --primary: #2c3e50; --secondary: #34495e; --accent: #3498db;
-            --success: #27ae60; --danger: #e74c3c; --warning: #f39c12;
-            --bg: #eef2f5;
-        }
-
-        body { font-family: 'Roboto', sans-serif; background-color: var(--bg); margin: 0; color: #333; height: 100vh; display: flex; flex-direction: column; }
-        
-        .navbar { background: var(--primary); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 60px; }
-        .brand { font-size: 1.2rem; font-weight: 700; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
-        
-        /* ABAS */
-        .tabs-bar { background: #dfe6e9; padding: 10px 20px 0 20px; display: flex; gap: 5px; border-bottom: 1px solid #ccc; overflow-x: auto; }
-        .tab { background: #b2bec3; padding: 10px 20px; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 500; font-size: 0.9rem; color: #2d3436; display: flex; align-items: center; gap: 10px; min-width: 140px; justify-content: space-between; transition: 0.2s; }
-        .tab:hover { background: #ced6e0; }
-        .tab.active { background: white; color: var(--primary); font-weight: 700; border-top: 3px solid var(--accent); }
-        .tab-overview { background: #95a5a6; color: white; }
-        .tab-overview.active { background: white; color: var(--primary); border-top-color: var(--warning); }
-        .tab-close { font-size: 0.8rem; opacity: 0.5; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
-        .tab-close:hover { opacity: 1; background: rgba(0,0,0,0.1); color: var(--danger); }
-        .new-tab-btn { background: transparent; border: none; font-size: 1.2rem; color: var(--secondary); cursor: pointer; padding: 0 15px; }
-
-        /* LAYOUT PRINCIPAL */
-        .tab-content-container { flex: 1; overflow: hidden; position: relative; }
-        .case-view { display: none; height: 100%; padding: 20px; overflow-y: auto; grid-template-columns: 320px 1fr; gap: 20px; max-width: 1600px; margin: 0 auto; box-sizing: border-box; }
-        .overview-view { display: none; height: 100%; padding: 30px; overflow-y: auto; max-width: 1400px; margin: 0 auto; box-sizing: border-box; }
-        .case-view.active { display: grid; }
-        .overview-view.active { display: block; }
-        
-        /* Sidebar e Inputs */
-        .sidebar { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); height: fit-content; }
-        .sidebar-header { font-size: 0.85rem; font-weight: 700; color: #95a5a6; text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px; display: flex; justify-content: space-between; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--secondary); margin-bottom: 5px; }
-        .form-group input, .form-group textarea { width: 100%; padding: 8px 10px; border: 1px solid #bdc3c7; border-radius: 4px; box-sizing: border-box; }
-        .year-input-group { display: flex; align-items: center; gap: 10px; background: #f0f3f6; padding: 10px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
-        .year-input-group input { font-size: 1.2rem; font-weight: 700; color: var(--primary); text-align: center; border: none; background: transparent; width: 80px; }
-        .data-display { background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #eee; margin-bottom: 20px; font-size: 0.85rem; }
-        .data-row { display: grid; grid-template-columns: 1fr 100px; gap: 10px; margin-bottom: 8px; align-items: center; }
-        .manual-input { width: 100%; padding: 4px; font-family: monospace; font-weight: 700; color: var(--primary); border: 1px solid #ddd; border-radius: 4px; text-align: right; background: white; }
-        .btn-analyze { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 4px; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .btn-analyze:hover { background: #2980b9; transform: translateY(-2px); }
-
-        /* Dashboard Individual */
-        .dashboard-area { display: grid; grid-template-rows: auto 1fr; gap: 20px; padding-bottom: 40px; }
-        .empty-state { text-align: center; padding-top: 80px; color: #bdc3c7; }
-        .verdict-header { background: white; padding: 20px; border-radius: 8px; border-left: 6px solid var(--primary); box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
-        .narrative-card { background: #fff; padding: 20px; border-radius: 8px; margin-top: 20px; line-height: 1.6; color: #444; border-top: 4px solid var(--success); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .results-grid { display: grid; grid-template-columns: 2fr 1.5fr; gap: 20px; margin-top: 20px; }
-        .metrics-column { display: flex; flex-direction: column; gap: 15px; }
-        .chart-column { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee; display: flex; flex-direction: column; gap: 20px; }
-        .chart-container { flex: 1; min-height: 150px; position: relative; }
-        .chart-title { font-size: 0.75rem; font-weight: 700; color: #7f8c8d; text-transform: uppercase; margin-bottom: 5px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .kpi-card { background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; }
-        .kpi-val { font-size: 1.4rem; font-weight: 700; color: var(--dark); }
-        .kpi-label { font-size: 0.75rem; text-transform: uppercase; color: #95a5a6; font-weight: 600; text-align: left; }
-        .analysis-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .box-header { font-size: 0.8rem; font-weight: 700; color: #7f8c8d; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .theory-tag { padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; color: white; display: inline-block; margin-bottom: 10px; }
-
-        /* OVERVIEW STYLES */
-        .overview-header { margin-bottom: 30px; border-bottom: 2px solid #ddd; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .comp-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 30px; }
-        .comp-table thead { background: var(--primary); color: white; }
-        .comp-table th, .comp-table td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
-        .comp-table th { font-weight: 500; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; }
-        .comp-table tr:hover { background-color: #f8f9fa; }
-        .cell-year { font-weight: 700; color: var(--primary); }
-        .cell-theory { font-weight: 700; padding: 5px 10px; border-radius: 4px; font-size: 0.85rem; display: inline-block;}
-        .th-neo { color: #34495e; background: rgba(52, 73, 94, 0.1); }
-        .th-lib { color: #3498db; background: rgba(52, 152, 219, 0.1); }
-        .th-def { color: #2c3e50; background: rgba(44, 62, 80, 0.1); }
-        .th-div { color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
-
-        /* GRÁFICOS HISTÓRICOS */
-        .historical-section { margin-top: 40px; }
-        .hist-charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 30px; }
-        .hist-chart-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-top: 4px solid var(--accent); }
-        .hist-chart-header { font-size: 1rem; font-weight: 700; color: var(--secondary); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
-        
-        /* Modal */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
-        .modal-content { background: white; width: 80%; max-width: 900px; height: 85%; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 25px rgba(0,0,0,0.2); }
-        .modal-header { background: var(--primary); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
-        .modal-body { display: flex; flex: 1; overflow: hidden; }
-        .help-sidebar { width: 200px; background: #f8f9fa; border-right: 1px solid #ddd; padding: 20px 0; }
-        .help-nav-item { padding: 12px 20px; cursor: pointer; color: var(--secondary); font-weight: 500; border-left: 4px solid transparent; transition: 0.2s; }
-        .help-nav-item:hover { background: #e9ecef; }
-        .help-nav-item.active { background: white; color: var(--accent); border-left-color: var(--accent); font-weight: 700; }
-        .help-content-area { flex: 1; padding: 30px; overflow-y: auto; }
-        .help-section { display: none; animation: fadeIn 0.3s; }
-        .help-section.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .math-box { background: #f1f8ff; border-left: 4px solid var(--accent); padding: 15px; margin: 15px 0; font-family: monospace; color: #2c3e50; }
-        h3 { color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; }
-        h4 { color: var(--secondary); margin-top: 25px; }
-        li { margin-bottom: 8px; line-height: 1.5; }
-    </style>
-</head>
-<body>
-
-    <nav class="navbar">
-        <div class="brand"><i class="fas fa-globe-americas"></i>Analista de Sanções</div>
-        <button onclick="openHelp()" style="background:transparent; border:1px solid rgba(255,255,255,0.3); color:white; padding:5px 15px; border-radius:4px; cursor:pointer;">
-            <i class="fas fa-book"></i> Guia & Metodologia
-        </button>
-    </nav>
-
-    <div class="tabs-bar" id="tabsBar">
-        <div class="tab tab-overview active" id="btn-overview" onclick="switchTab('overview')"><i class="fas fa-th-list"></i> Painel Geral</div>
-        <button class="new-tab-btn" onclick="createNewTab()" title="Nova Análise"><i class="fas fa-plus"></i></button>
-    </div>
-
-    <div class="tab-content-container" id="tabContentContainer">
-        
-        <div id="view-overview" class="overview-view active">
-            <div class="overview-header">
-                <h2><i class="fas fa-history"></i> Matriz Comparativa de Casos</h2>
-                <div style="font-size:0.9rem; color:#7f8c8d;">Compare a evolução histórica e as mudanças de incentivos estratégicos.</div>
-            </div>
-
-            <div style="overflow-x: auto;">
-                <table class="comp-table">
-                    <thead>
-                        <tr><th>Ano</th><th>Sancionador</th><th>Alvo</th><th>Assimetria (Poder)</th><th>Dependência (Comércio)</th><th>Projeção de Resposta (Teoria)</th><th>Ação</th></tr>
-                    </thead>
-                    <tbody id="overviewTableBody"></tbody>
-                </table>
-                <div id="overview-empty" style="text-align:center; padding:40px; color:#bdc3c7;">
-                    <i class="fas fa-inbox" style="font-size:2rem; margin-bottom:10px;"></i>
-                    <p>Nenhum caso analisado ainda. Abra uma nova aba e execute uma análise.</p>
-                </div>
-            </div>
-
-            <div id="historical-section" class="historical-section" style="display:none;">
-                <div class="overview-header" style="margin-top:20px; border-bottom:none;">
-                    <h3><i class="fas fa-chart-line"></i> Evolução das Relações (Série Histórica)</h3>
-                </div>
-                <div id="hist-charts-container" class="hist-charts-grid">
-                    </div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="modal-overlay" id="helpModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span style="font-size:1.2rem; font-weight:bold;"><i class="fas fa-graduation-cap"></i> Documentação do Sistema</span>
-                <span onclick="closeHelp()" style="font-size:1.5rem; cursor:pointer;">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="help-sidebar">
-                    <div class="help-nav-item active" onclick="switchHelpTab('guide')">Como Usar</div>
-                    <div class="help-nav-item" onclick="switchHelpTab('method')">Metodologia</div>
-                    <div class="help-nav-item" onclick="switchHelpTab('theories')">Teorias</div>
-                </div>
-                <div class="help-content-area">
-                    <div id="help-guide" class="help-section active">
-                        <h3>📖 Guia de Utilização</h3>
-                        <p>Este sistema auxilia na predição do resultado de sanções econômicas utilizando dados quantitativos e análise de discurso.</p>
-                        <h4>1. Preenchimento de Parâmetros</h4>
-                        <ul><li><b>Sancionador e Alvo:</b> Insira o nome do país em inglês ou código ISO (ex: USA, CHN).</li><li><b>Ano:</b> Selecione o ano base para a coleta de dados históricos.</li></ul>
-                        <h4>2. Dados Automáticos vs. Manuais</h4>
-                        <div class="math-box" style="border-color: #f39c12; background: #fffaf0;">⚠️ <b>ATENÇÃO:</b> Ao preencher manualmente, insira os valores em <b>BILHÕES</b>.<br>Exemplo: Para US$ 10,5 Bilhões, digite <b>10.5</b>.</div>
-                    </div>
-                    <div id="help-method" class="help-section">
-                        <h3>📐 Metodologia de Cálculo</h3>
-                        <h4>1. Assimetria de Poder (PIB)</h4><div class="math-box">Assimetria = PIB Sancionador / PIB Alvo</div><p><i>Lógica:</i> Se <b>&gt; 10x</b>, indica capacidade coercitiva "imperial" (Neorrealismo).</p>
-                        <h4>2. Interdependência Comercial</h4><div class="math-box">Dependência = (Comércio Bilateral / PIB Alvo) * 100</div><p><i>Lógica:</i> Se <b>&gt; 5%</b>, o custo de sanções é proibitivo (Liberalismo).</p>
-                    </div>
-                    <div id="help-theories" class="help-section">
-                        <h3>⚖️ Matriz de Decisão</h3>
-                        <ul><li><b>🛡️ Neorrealismo:</b> Resistência pela sobrevivência (Assimetria &gt; 10x).</li><li><b>🤝 Liberalismo:</b> Acomodação econômica (Dependência &gt; 5%).</li><li><b>🏰 Realismo Defensivo:</b> Resistência via reservas (Resiliência &gt; 15m).</li></ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let tabs = [];
-        let activeTabId = 'overview';
-        let tabCounter = 0;
-        let chartInstances = {}; // Gráficos das abas individuais
-        let histChartInstances = []; // Gráficos do painel geral
-        
-        let analysisResults = {}; // Armazena dados globais
-
-        function createNewTab() {
-            tabCounter++;
-            const tabId = `case-${tabCounter}`;
-            tabs.push({ id: tabId });
-
-            const tabButton = document.createElement('div');
-            tabButton.className = 'tab active';
-            tabButton.id = `btn-${tabId}`;
-            tabButton.innerHTML = `<span onclick="switchTab('${tabId}')"><i class="far fa-file-alt"></i> <span id="title-${tabId}">Caso ${tabCounter}</span></span> <span class="tab-close" onclick="closeTab('${tabId}')"><i class="fas fa-times"></i></span>`;
-            
-            const tabsBar = document.getElementById('tabsBar');
-            tabsBar.insertBefore(tabButton, tabsBar.lastElementChild);
-
-            const view = document.createElement('div');
-            view.className = 'case-view active';
-            view.id = `view-${tabId}`;
-            view.innerHTML = generateCaseHTML(tabId);
-            document.getElementById('tabContentContainer').appendChild(view);
-
-            switchTab(tabId);
-        }
-
-        function closeTab(tabId) {
-            document.getElementById(`btn-${tabId}`).remove();
-            document.getElementById(`view-${tabId}`).remove();
-            tabs = tabs.filter(t => t.id !== tabId);
-            delete analysisResults[tabId];
-            updateOverviewTable();
-            if (activeTabId === tabId) {
-                if (tabs.length > 0) switchTab(tabs[tabs.length - 1].id);
-                else switchTab('overview');
+        <style>
+            :root {
+                --primary: #2c3e50; --secondary: #34495e; --accent: #3498db;
+                --success: #27ae60; --danger: #e74c3c; --warning: #f39c12;
+                --bg: #eef2f5;
             }
-        }
 
-        function switchTab(tabId) {
-            activeTabId = tabId;
-            document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-overview').classList.remove('active');
-            document.querySelectorAll('.case-view').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.overview-view').forEach(v => v.classList.remove('active'));
+            body { font-family: 'Roboto', sans-serif; background-color: var(--bg); margin: 0; color: #333; height: 100vh; display: flex; flex-direction: column; }
+            
+            .navbar { background: var(--primary); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 60px; }
+            .brand { font-size: 1.2rem; font-weight: 700; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+            
+            /* ABAS */
+            .tabs-bar { background: #dfe6e9; padding: 10px 20px 0 20px; display: flex; gap: 5px; border-bottom: 1px solid #ccc; overflow-x: auto; }
+            .tab { background: #b2bec3; padding: 10px 20px; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 500; font-size: 0.9rem; color: #2d3436; display: flex; align-items: center; gap: 10px; min-width: 140px; justify-content: space-between; transition: 0.2s; }
+            .tab:hover { background: #ced6e0; }
+            .tab.active { background: white; color: var(--primary); font-weight: 700; border-top: 3px solid var(--accent); }
+            .tab-overview { background: #95a5a6; color: white; }
+            .tab-overview.active { background: white; color: var(--primary); border-top-color: var(--warning); }
+            .tab-close { font-size: 0.8rem; opacity: 0.5; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+            .tab-close:hover { opacity: 1; background: rgba(0,0,0,0.1); color: var(--danger); }
+            .new-tab-btn { background: transparent; border: none; font-size: 1.2rem; color: var(--secondary); cursor: pointer; padding: 0 15px; }
 
-            if (tabId === 'overview') {
-                document.getElementById('btn-overview').classList.add('active');
-                document.getElementById('view-overview').classList.add('active');
+            /* LAYOUT PRINCIPAL */
+            .tab-content-container { flex: 1; overflow: hidden; position: relative; }
+            .case-view { display: none; height: 100%; padding: 20px; overflow-y: auto; grid-template-columns: 320px 1fr; gap: 20px; max-width: 1600px; margin: 0 auto; box-sizing: border-box; }
+            .overview-view { display: none; height: 100%; padding: 30px; overflow-y: auto; max-width: 1400px; margin: 0 auto; box-sizing: border-box; }
+            .case-view.active { display: grid; }
+            .overview-view.active { display: block; }
+            
+            /* Sidebar e Inputs */
+            .sidebar { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); height: fit-content; }
+            .sidebar-header { font-size: 0.85rem; font-weight: 700; color: #95a5a6; text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px; display: flex; justify-content: space-between; }
+            .form-group { margin-bottom: 15px; }
+            .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--secondary); margin-bottom: 5px; }
+            .form-group input, .form-group textarea { width: 100%; padding: 8px 10px; border: 1px solid #bdc3c7; border-radius: 4px; box-sizing: border-box; }
+            .year-input-group { display: flex; align-items: center; gap: 10px; background: #f0f3f6; padding: 10px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
+            .year-input-group input { font-size: 1.2rem; font-weight: 700; color: var(--primary); text-align: center; border: none; background: transparent; width: 80px; }
+            .data-display { background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #eee; margin-bottom: 20px; font-size: 0.85rem; }
+            .data-row { display: grid; grid-template-columns: 1fr 100px; gap: 10px; margin-bottom: 8px; align-items: center; }
+            .manual-input { width: 100%; padding: 4px; font-family: monospace; font-weight: 700; color: var(--primary); border: 1px solid #ddd; border-radius: 4px; text-align: right; background: white; }
+            .btn-analyze { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 4px; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+            .btn-analyze:hover { background: #2980b9; transform: translateY(-2px); }
+
+            /* Dashboard Individual */
+            .dashboard-area { display: grid; grid-template-rows: auto 1fr; gap: 20px; padding-bottom: 40px; }
+            .empty-state { text-align: center; padding-top: 80px; color: #bdc3c7; }
+            .verdict-header { background: white; padding: 20px; border-radius: 8px; border-left: 6px solid var(--primary); box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+            .narrative-card { background: #fff; padding: 20px; border-radius: 8px; margin-top: 20px; line-height: 1.6; color: #444; border-top: 4px solid var(--success); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+            .results-grid { display: grid; grid-template-columns: 2fr 1.5fr; gap: 20px; margin-top: 20px; }
+            .metrics-column { display: flex; flex-direction: column; gap: 15px; }
+            .chart-column { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee; display: flex; flex-direction: column; gap: 20px; }
+            .chart-container { flex: 1; min-height: 150px; position: relative; }
+            .chart-title { font-size: 0.75rem; font-weight: 700; color: #7f8c8d; text-transform: uppercase; margin-bottom: 5px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+            .kpi-card { background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; }
+            .kpi-val { font-size: 1.4rem; font-weight: 700; color: var(--dark); }
+            .kpi-label { font-size: 0.75rem; text-transform: uppercase; color: #95a5a6; font-weight: 600; text-align: left; }
+            .analysis-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+            .box-header { font-size: 0.8rem; font-weight: 700; color: #7f8c8d; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+            .theory-tag { padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; color: white; display: inline-block; margin-bottom: 10px; }
+
+            /* OVERVIEW STYLES */
+            .overview-header { margin-bottom: 30px; border-bottom: 2px solid #ddd; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+            .comp-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 30px; }
+            .comp-table thead { background: var(--primary); color: white; }
+            .comp-table th, .comp-table td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+            .comp-table th { font-weight: 500; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; }
+            .comp-table tr:hover { background-color: #f8f9fa; }
+            .cell-year { font-weight: 700; color: var(--primary); }
+            .cell-theory { font-weight: 700; padding: 5px 10px; border-radius: 4px; font-size: 0.85rem; display: inline-block;}
+            .th-neo { color: #34495e; background: rgba(52, 73, 94, 0.1); }
+            .th-lib { color: #3498db; background: rgba(52, 152, 219, 0.1); }
+            .th-def { color: #2c3e50; background: rgba(44, 62, 80, 0.1); }
+            .th-div { color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
+
+            /* GRÁFICOS HISTÓRICOS */
+            .historical-section { margin-top: 40px; }
+            .hist-charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 30px; }
+            .hist-chart-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-top: 4px solid var(--accent); }
+            .hist-chart-header { font-size: 1rem; font-weight: 700; color: var(--secondary); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+            
+            /* Modal */
+            .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+            .modal-content { background: white; width: 80%; max-width: 900px; height: 85%; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 25px rgba(0,0,0,0.2); }
+            .modal-header { background: var(--primary); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
+            .modal-body { display: flex; flex: 1; overflow: hidden; }
+            .help-sidebar { width: 200px; background: #f8f9fa; border-right: 1px solid #ddd; padding: 20px 0; }
+            .help-nav-item { padding: 12px 20px; cursor: pointer; color: var(--secondary); font-weight: 500; border-left: 4px solid transparent; transition: 0.2s; }
+            .help-nav-item:hover { background: #e9ecef; }
+            .help-nav-item.active { background: white; color: var(--accent); border-left-color: var(--accent); font-weight: 700; }
+            .help-content-area { flex: 1; padding: 30px; overflow-y: auto; }
+            .help-section { display: none; animation: fadeIn 0.3s; }
+            .help-section.active { display: block; }
+            @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+            .math-box { background: #f1f8ff; border-left: 4px solid var(--accent); padding: 15px; margin: 15px 0; font-family: monospace; color: #2c3e50; }
+            h3 { color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; }
+            h4 { color: var(--secondary); margin-top: 25px; }
+            li { margin-bottom: 8px; line-height: 1.5; }
+        </style>
+    </head>
+    <body>
+
+        <nav class="navbar">
+            <div class="brand"><i class="fas fa-globe-americas"></i>Analista de Sanções</div>
+            <button onclick="openHelp()" style="background:transparent; border:1px solid rgba(255,255,255,0.3); color:white; padding:5px 15px; border-radius:4px; cursor:pointer;">
+                <i class="fas fa-book"></i> Guia & Metodologia
+            </button>
+        </nav>
+
+        <div class="tabs-bar" id="tabsBar">
+            <div class="tab tab-overview active" id="btn-overview" onclick="switchTab('overview')"><i class="fas fa-th-list"></i> Painel Geral</div>
+            <button class="new-tab-btn" onclick="createNewTab()" title="Nova Análise"><i class="fas fa-plus"></i></button>
+        </div>
+
+        <div class="tab-content-container" id="tabContentContainer">
+            
+            <div id="view-overview" class="overview-view active">
+                <div class="overview-header">
+                    <h2><i class="fas fa-history"></i> Matriz Comparativa de Casos</h2>
+                    <div style="font-size:0.9rem; color:#7f8c8d;">Compare a evolução histórica e as mudanças de incentivos estratégicos.</div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="comp-table">
+                        <thead>
+                            <tr><th>Ano</th><th>Sancionador</th><th>Alvo</th><th>Assimetria (Poder)</th><th>Dependência (Comércio)</th><th>Projeção de Resposta (Teoria)</th><th>Ação</th></tr>
+                        </thead>
+                        <tbody id="overviewTableBody"></tbody>
+                    </table>
+                    <div id="overview-empty" style="text-align:center; padding:40px; color:#bdc3c7;">
+                        <i class="fas fa-inbox" style="font-size:2rem; margin-bottom:10px;"></i>
+                        <p>Nenhum caso analisado ainda. Abra uma nova aba e execute uma análise.</p>
+                    </div>
+                </div>
+
+                <div id="historical-section" class="historical-section" style="display:none;">
+                    <div class="overview-header" style="margin-top:20px; border-bottom:none;">
+                        <h3><i class="fas fa-chart-line"></i> Evolução das Relações (Série Histórica)</h3>
+                    </div>
+                    <div id="hist-charts-container" class="hist-charts-grid">
+                        </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="modal-overlay" id="helpModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span style="font-size:1.2rem; font-weight:bold;"><i class="fas fa-graduation-cap"></i> Documentação do Sistema</span>
+                    <span onclick="closeHelp()" style="font-size:1.5rem; cursor:pointer;">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="help-sidebar">
+                        <div class="help-nav-item active" onclick="switchHelpTab('guide')">Como Usar</div>
+                        <div class="help-nav-item" onclick="switchHelpTab('method')">Metodologia</div>
+                        <div class="help-nav-item" onclick="switchHelpTab('theories')">Teorias</div>
+                    </div>
+                    <div class="help-content-area">
+                        <div id="help-guide" class="help-section active">
+                            <h3>📖 Guia de Utilização</h3>
+                            <p>Este sistema auxilia na predição do resultado de sanções econômicas utilizando dados quantitativos e análise de discurso.</p>
+                            <h4>1. Preenchimento de Parâmetros</h4>
+                            <ul><li><b>Sancionador e Alvo:</b> Insira o nome do país em inglês ou código ISO (ex: USA, CHN).</li><li><b>Ano:</b> Selecione o ano base para a coleta de dados históricos.</li></ul>
+                            <h4>2. Dados Automáticos vs. Manuais</h4>
+                            <div class="math-box" style="border-color: #f39c12; background: #fffaf0;">⚠️ <b>ATENÇÃO:</b> Ao preencher manualmente, insira os valores em <b>BILHÕES</b>.<br>Exemplo: Para US$ 10,5 Bilhões, digite <b>10.5</b>.</div>
+                        </div>
+                        <div id="help-method" class="help-section">
+                            <h3>📐 Metodologia de Cálculo</h3>
+                            <h4>1. Assimetria de Poder (PIB)</h4><div class="math-box">Assimetria = PIB Sancionador / PIB Alvo</div><p><i>Lógica:</i> Se <b>&gt; 10x</b>, indica capacidade coercitiva "imperial" (Neorrealismo).</p>
+                            <h4>2. Interdependência Comercial</h4><div class="math-box">Dependência = (Comércio Bilateral / PIB Alvo) * 100</div><p><i>Lógica:</i> Se <b>&gt; 5%</b>, o custo de sanções é proibitivo (Liberalismo).</p>
+                        </div>
+                        <div id="help-theories" class="help-section">
+                            <h3>⚖️ Matriz de Decisão</h3>
+                            <ul><li><b>🛡️ Neorrealismo:</b> Resistência pela sobrevivência (Assimetria &gt; 10x).</li><li><b>🤝 Liberalismo:</b> Acomodação econômica (Dependência &gt; 5%).</li><li><b>🏰 Realismo Defensivo:</b> Resistência via reservas (Resiliência &gt; 15m).</li></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let tabs = [];
+            let activeTabId = 'overview';
+            let tabCounter = 0;
+            let chartInstances = {}; // Gráficos das abas individuais
+            let histChartInstances = []; // Gráficos do painel geral
+            
+            let analysisResults = {}; // Armazena dados globais
+
+            function createNewTab() {
+                tabCounter++;
+                const tabId = `case-${tabCounter}`;
+                tabs.push({ id: tabId });
+
+                const tabButton = document.createElement('div');
+                tabButton.className = 'tab active';
+                tabButton.id = `btn-${tabId}`;
+                tabButton.innerHTML = `<span onclick="switchTab('${tabId}')"><i class="far fa-file-alt"></i> <span id="title-${tabId}">Caso ${tabCounter}</span></span> <span class="tab-close" onclick="closeTab('${tabId}')"><i class="fas fa-times"></i></span>`;
+                
+                const tabsBar = document.getElementById('tabsBar');
+                tabsBar.insertBefore(tabButton, tabsBar.lastElementChild);
+
+                const view = document.createElement('div');
+                view.className = 'case-view active';
+                view.id = `view-${tabId}`;
+                view.innerHTML = generateCaseHTML(tabId);
+                document.getElementById('tabContentContainer').appendChild(view);
+
+                switchTab(tabId);
+            }
+
+            function closeTab(tabId) {
+                document.getElementById(`btn-${tabId}`).remove();
+                document.getElementById(`view-${tabId}`).remove();
+                tabs = tabs.filter(t => t.id !== tabId);
+                delete analysisResults[tabId];
                 updateOverviewTable();
-            } else {
-                document.getElementById(`btn-${tabId}`).classList.add('active');
-                document.getElementById(`view-${tabId}`).classList.add('active');
-            }
-        }
-
-        function updateOverviewTable() {
-            const tbody = document.getElementById('overviewTableBody');
-            const emptyState = document.getElementById('overview-empty');
-            tbody.innerHTML = ''; 
-
-            const keys = Object.keys(analysisResults);
-            
-            if (keys.length === 0) {
-                emptyState.style.display = 'block';
-                document.getElementById('historical-section').style.display = 'none';
-                return;
-            }
-            emptyState.style.display = 'none';
-            document.getElementById('historical-section').style.display = 'block';
-
-            // Ordena por Ano
-            keys.sort((a, b) => analysisResults[a].year - analysisResults[b].year);
-
-            keys.forEach(id => {
-                const data = analysisResults[id];
-                const tr = document.createElement('tr');
-                tr.onclick = () => switchTab(id);
-                tr.style.cursor = 'pointer';
-
-                let theoryClass = '';
-                if(data.theory.includes("NEORREALISMO")) theoryClass = 'th-neo';
-                else if(data.theory.includes("LIBERALISMO")) theoryClass = 'th-lib';
-                else if(data.theory.includes("DEFENSIVO")) theoryClass = 'th-def';
-                else theoryClass = 'th-div';
-
-                tr.innerHTML = `<td class="cell-year">${data.year}</td><td>${data.sanctioner}</td><td><b>${data.target}</b></td><td>${data.asymmetry.toFixed(1)}x</td><td style="${data.dependency > 5 ? 'color:#e74c3c; font-weight:bold;' : ''}">${data.dependency.toFixed(2)}%</td><td><span class="cell-theory ${theoryClass}">${data.theory.split(" ")[0]}</span></td><td><button style="padding:2px 8px; cursor:pointer;" onclick="switchTab('${id}')"><i class="fas fa-external-link-alt"></i></button></td>`;
-                tbody.appendChild(tr);
-            });
-
-            updateHistoricalCharts(keys);
-        }
-
-        // --- NOVA FUNÇÃO: GRÁFICOS HISTÓRICOS ---
-        function updateHistoricalCharts(keys) {
-            const container = document.getElementById('hist-charts-container');
-            
-            // 1. Agrupa os dados por par de países (Ex: "USA-CHN")
-            let groups = {};
-            keys.forEach(id => {
-                const d = analysisResults[id];
-                const pairKey = `${d.sanctioner.toUpperCase()} ➔ ${d.target.toUpperCase()}`;
-                if (!groups[pairKey]) groups[pairKey] = [];
-                groups[pairKey].push(d);
-            });
-
-            // 2. Limpa gráficos antigos
-            histChartInstances.forEach(c => c.destroy());
-            histChartInstances = [];
-            container.innerHTML = "";
-
-            // 3. Cria DOIS gráficos para cada par
-            Object.keys(groups).forEach((pair, index) => {
-                const dataPoints = groups[pair].sort((a, b) => a.year - b.year);
-                
-                // Cria CARD
-                const card = document.createElement('div');
-                card.className = 'hist-chart-card';
-                
-                // HTML interno com dois canvas (um em cima do outro ou lado a lado, aqui faremos um bloco)
-                card.innerHTML = `
-                    <div class="hist-chart-header">
-                        <span>${pair}</span>
-                        <small style="font-weight:400; color:#7f8c8d;">${dataPoints.length} registro(s)</small>
-                    </div>
-                    
-                    <div style="margin-bottom:20px;">
-                        <div style="font-size:0.8rem; font-weight:700; color:#555; text-align:center; margin-bottom:5px;">Dinâmica Relativa (Assimetria & Dependência)</div>
-                        <div style="height: 220px;">
-                            <canvas id="hist-canvas-rel-${index}"></canvas>
-                        </div>
-                    </div>
-
-                    <div style="border-top:1px solid #eee; padding-top:15px;">
-                        <div style="font-size:0.8rem; font-weight:700; color:#555; text-align:center; margin-bottom:5px;">Evolução do PIB Absoluto (Bilhões USD)</div>
-                        <div style="height: 220px;">
-                            <canvas id="hist-canvas-abs-${index}"></canvas>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(card);
-
-                // --- GRÁFICO 1: RELATIVO ---
-                const ctxRel = document.getElementById(`hist-canvas-rel-${index}`).getContext('2d');
-                histChartInstances.push(new Chart(ctxRel, {
-                    type: 'line',
-                    data: {
-                        labels: dataPoints.map(d => d.year),
-                        datasets: [
-                            { label: 'Assimetria (x)', data: dataPoints.map(d => d.asymmetry), borderColor: '#2c3e50', backgroundColor: '#2c3e50', yAxisID: 'y', tension: 0.2 },
-                            { label: 'Dependência (%)', data: dataPoints.map(d => d.dependency), borderColor: '#e74c3c', backgroundColor: '#e74c3c', yAxisID: 'y1', tension: 0.2 }
-                        ]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        interaction: { mode: 'index', intersect: false },
-                        scales: {
-                            y: { type: 'linear', display: true, position: 'left', title: {display:true, text:'Assimetria (x)'} },
-                            y1: { type: 'linear', display: true, position: 'right', title: {display:true, text:'Dependência (%)'}, grid: { drawOnChartArea: false } }
-                        }
-                    }
-                }));
-
-                // --- GRÁFICO 2: ABSOLUTO (PIB) ---
-                const ctxAbs = document.getElementById(`hist-canvas-abs-${index}`).getContext('2d');
-                histChartInstances.push(new Chart(ctxAbs, {
-                    type: 'line',
-                    data: {
-                        labels: dataPoints.map(d => d.year),
-                        datasets: [
-                            { label: `PIB ${dataPoints[0].sanctioner}`, data: dataPoints.map(d => d.gdp_s / 1e9), borderColor: '#7f8c8d', backgroundColor: '#7f8c8d', tension: 0.2, borderDash: [5, 5] },
-                            { label: `PIB ${dataPoints[0].target}`, data: dataPoints.map(d => d.gdp_t / 1e9), borderColor: '#3498db', backgroundColor: '#3498db', tension: 0.2 }
-                        ]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        interaction: { mode: 'index', intersect: false },
-                        plugins: { tooltip: { callbacks: { label: (c) => c.dataset.label + ': ' + c.raw.toFixed(2) + ' Bi' } } },
-                        scales: {
-                            y: { title: {display:true, text:'PIB (Bilhões USD)'} }
-                        }
-                    }
-                }));
-            });
-        }
-
-        function generateCaseHTML(id) {
-            return `
-                <aside class="sidebar">
-                    <div class="sidebar-header"><span>Parâmetros</span> <i class="fas fa-sliders-h"></i></div>
-                    <form onsubmit="event.preventDefault(); runAnalysis('${id}');">
-                        <div class="year-input-group"><label>📅 Ano:</label><input type="number" id="year-${id}" value="2023" onchange="refreshData('${id}')"></div>
-                        <div class="form-group"><label>🛡️ Sancionador</label><input type="text" id="sanctioner-${id}" placeholder="Ex: USA" onblur="fetchData('${id}', 'SANCTIONER')"></div>
-                        <div class="form-group"><label>🎯 País Alvo</label><input type="text" id="target-${id}" placeholder="Ex: China" onblur="fetchData('${id}', 'TARGET')"></div>
-                        <div class="data-display">
-                            <div style="font-size:0.75rem; color:#7f8c8d; margin-bottom:10px; text-align:center;"><i class="fas fa-info-circle"></i> Valores Manuais (Bilhões US$)</div>
-                            <div class="data-row"><span>PIB Alvo:</span> <input type="number" step="any" class="manual-input" id="inp_gdpT-${id}"></div>
-                            <div class="data-row"><span>PIB Sancionador:</span> <input type="number" step="any" class="manual-input" id="inp_gdpS-${id}"></div>
-                            <div class="data-row"><span>Imp. Totais Alvo:</span> <input type="number" step="any" class="manual-input" id="inp_impT-${id}"></div>
-                            <div class="data-row"><span>Reservas Alvo:</span> <input type="number" step="any" class="manual-input" id="inp_resT-${id}"></div>
-                            <div class="data-row"><span>Comércio Bilateral:</span> <input type="number" step="any" class="manual-input" id="inp_trade-${id}" style="color:var(--accent); font-weight:bold;"></div>
-                        </div>
-                        <div class="form-group"><label>Retórica do Alvo</label><textarea id="rhetoric-${id}" rows="3" placeholder="Discurso oficial..."></textarea></div>
-                        <button class="btn-analyze" id="btnRun-${id}"><i class="fas fa-play"></i> Analisar Resposta</button>
-                    </form>
-                </aside>
-                <main class="dashboard-area" id="resultArea-${id}"><div class="empty-state"><i class="fas fa-chart-pie" style="font-size: 3rem;"></i><h3>Aguardando Dados</h3></div></main>
-            `;
-        }
-
-        function renderCharts(id, data, s_name, t_name) {
-            if (chartInstances[id]) {
-                if(chartInstances[id].gdp) chartInstances[id].gdp.destroy();
-                if(chartInstances[id].dep) chartInstances[id].dep.destroy();
-            } else { chartInstances[id] = {}; }
-
-            const ctxGDP = document.getElementById(`chart-gdp-${id}`).getContext('2d');
-            chartInstances[id].gdp = new Chart(ctxGDP, {
-                type: 'bar',
-                data: { labels: [s_name, t_name], datasets: [{ label: 'PIB (Bi USD)', data: [data.gdp_sanctioner / 1e9, data.gdp_target / 1e9], backgroundColor: ['#2c3e50', '#3498db'] }] },
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } } } }
-            });
-
-            const dep_s = (data.trade / data.gdp_sanctioner) * 100;
-            const dep_t = (data.trade / data.gdp_target) * 100;
-            const ctxDep = document.getElementById(`chart-dep-${id}`).getContext('2d');
-            chartInstances[id].dep = new Chart(ctxDep, {
-                type: 'bar',
-                data: { labels: [`Em ${s_name}`, `Em ${t_name}`], datasets: [{ label: 'Dependência (%)', data: [dep_s, dep_t], backgroundColor: ['#95a5a6', '#e74c3c'] }] },
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => c.raw.toFixed(2) + '%' } } } }
-            });
-        }
-
-        async function fetchData(id, type) {
-            const val = document.getElementById(type === 'TARGET' ? `target-${id}` : `sanctioner-${id}`).value;
-            const year = document.getElementById(`year-${id}`).value;
-            if(val.length < 2) return;
-            try {
-                const res = await fetch(`http://localhost:5000/api/country/${val}?year=${year}`);
-                const data = await res.json();
-                if(!data.error) {
-                    const setVal = (eid, v) => document.getElementById(eid).value = v ? (v/1e9).toFixed(2) : "";
-                    if(data.gdp_nominal) setVal(type === 'TARGET' ? `inp_gdpT-${id}` : `inp_gdpS-${id}`, data.gdp_nominal);
-                    if(type === 'TARGET') { setVal(`inp_impT-${id}`, data.imports_total); setVal(`inp_resT-${id}`, data.international_reserves); }
+                if (activeTabId === tabId) {
+                    if (tabs.length > 0) switchTab(tabs[tabs.length - 1].id);
+                    else switchTab('overview');
                 }
-                checkTrade(id);
-            } catch(e) {}
-        }
+            }
 
-        async function checkTrade(id) {
-            const t = document.getElementById(`target-${id}`).value;
-            const s = document.getElementById(`sanctioner-${id}`).value;
-            if(t && s) {
+            function switchTab(tabId) {
+                activeTabId = tabId;
+                document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+                document.getElementById('btn-overview').classList.remove('active');
+                document.querySelectorAll('.case-view').forEach(v => v.classList.remove('active'));
+                document.querySelectorAll('.overview-view').forEach(v => v.classList.remove('active'));
+
+                if (tabId === 'overview') {
+                    document.getElementById('btn-overview').classList.add('active');
+                    document.getElementById('view-overview').classList.add('active');
+                    updateOverviewTable();
+                } else {
+                    document.getElementById(`btn-${tabId}`).classList.add('active');
+                    document.getElementById(`view-${tabId}`).classList.add('active');
+                }
+            }
+
+            function updateOverviewTable() {
+                const tbody = document.getElementById('overviewTableBody');
+                const emptyState = document.getElementById('overview-empty');
+                tbody.innerHTML = ''; 
+
+                const keys = Object.keys(analysisResults);
+                
+                if (keys.length === 0) {
+                    emptyState.style.display = 'block';
+                    document.getElementById('historical-section').style.display = 'none';
+                    return;
+                }
+                emptyState.style.display = 'none';
+                document.getElementById('historical-section').style.display = 'block';
+
+                // Ordena por Ano
+                keys.sort((a, b) => analysisResults[a].year - analysisResults[b].year);
+
+                keys.forEach(id => {
+                    const data = analysisResults[id];
+                    const tr = document.createElement('tr');
+                    tr.onclick = () => switchTab(id);
+                    tr.style.cursor = 'pointer';
+
+                    let theoryClass = '';
+                    if(data.theory.includes("NEORREALISMO")) theoryClass = 'th-neo';
+                    else if(data.theory.includes("LIBERALISMO")) theoryClass = 'th-lib';
+                    else if(data.theory.includes("DEFENSIVO")) theoryClass = 'th-def';
+                    else theoryClass = 'th-div';
+
+                    tr.innerHTML = `<td class="cell-year">${data.year}</td><td>${data.sanctioner}</td><td><b>${data.target}</b></td><td>${data.asymmetry.toFixed(1)}x</td><td style="${data.dependency > 5 ? 'color:#e74c3c; font-weight:bold;' : ''}">${data.dependency.toFixed(2)}%</td><td><span class="cell-theory ${theoryClass}">${data.theory.split(" ")[0]}</span></td><td><button style="padding:2px 8px; cursor:pointer;" onclick="switchTab('${id}')"><i class="fas fa-external-link-alt"></i></button></td>`;
+                    tbody.appendChild(tr);
+                });
+
+                updateHistoricalCharts(keys);
+            }
+
+            // --- NOVA FUNÇÃO: GRÁFICOS HISTÓRICOS ---
+            function updateHistoricalCharts(keys) {
+                const container = document.getElementById('hist-charts-container');
+                
+                // 1. Agrupa os dados por par de países (Ex: "USA-CHN")
+                let groups = {};
+                keys.forEach(id => {
+                    const d = analysisResults[id];
+                    const pairKey = `${d.sanctioner.toUpperCase()} ➔ ${d.target.toUpperCase()}`;
+                    if (!groups[pairKey]) groups[pairKey] = [];
+                    groups[pairKey].push(d);
+                });
+
+                // 2. Limpa gráficos antigos
+                histChartInstances.forEach(c => c.destroy());
+                histChartInstances = [];
+                container.innerHTML = "";
+
+                // 3. Cria DOIS gráficos para cada par
+                Object.keys(groups).forEach((pair, index) => {
+                    const dataPoints = groups[pair].sort((a, b) => a.year - b.year);
+                    
+                    // Cria CARD
+                    const card = document.createElement('div');
+                    card.className = 'hist-chart-card';
+                    
+                    // HTML interno com dois canvas (um em cima do outro ou lado a lado, aqui faremos um bloco)
+                    card.innerHTML = `
+                        <div class="hist-chart-header">
+                            <span>${pair}</span>
+                            <small style="font-weight:400; color:#7f8c8d;">${dataPoints.length} registro(s)</small>
+                        </div>
+                        
+                        <div style="margin-bottom:20px;">
+                            <div style="font-size:0.8rem; font-weight:700; color:#555; text-align:center; margin-bottom:5px;">Dinâmica Relativa (Assimetria & Dependência)</div>
+                            <div style="height: 220px;">
+                                <canvas id="hist-canvas-rel-${index}"></canvas>
+                            </div>
+                        </div>
+
+                        <div style="border-top:1px solid #eee; padding-top:15px;">
+                            <div style="font-size:0.8rem; font-weight:700; color:#555; text-align:center; margin-bottom:5px;">Evolução do PIB Absoluto (Bilhões USD)</div>
+                            <div style="height: 220px;">
+                                <canvas id="hist-canvas-abs-${index}"></canvas>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(card);
+
+                    // --- GRÁFICO 1: RELATIVO ---
+                    const ctxRel = document.getElementById(`hist-canvas-rel-${index}`).getContext('2d');
+                    histChartInstances.push(new Chart(ctxRel, {
+                        type: 'line',
+                        data: {
+                            labels: dataPoints.map(d => d.year),
+                            datasets: [
+                                { label: 'Assimetria (x)', data: dataPoints.map(d => d.asymmetry), borderColor: '#2c3e50', backgroundColor: '#2c3e50', yAxisID: 'y', tension: 0.2 },
+                                { label: 'Dependência (%)', data: dataPoints.map(d => d.dependency), borderColor: '#e74c3c', backgroundColor: '#e74c3c', yAxisID: 'y1', tension: 0.2 }
+                            ]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            interaction: { mode: 'index', intersect: false },
+                            scales: {
+                                y: { type: 'linear', display: true, position: 'left', title: {display:true, text:'Assimetria (x)'} },
+                                y1: { type: 'linear', display: true, position: 'right', title: {display:true, text:'Dependência (%)'}, grid: { drawOnChartArea: false } }
+                            }
+                        }
+                    }));
+
+                    // --- GRÁFICO 2: ABSOLUTO (PIB) ---
+                    const ctxAbs = document.getElementById(`hist-canvas-abs-${index}`).getContext('2d');
+                    histChartInstances.push(new Chart(ctxAbs, {
+                        type: 'line',
+                        data: {
+                            labels: dataPoints.map(d => d.year),
+                            datasets: [
+                                { label: `PIB ${dataPoints[0].sanctioner}`, data: dataPoints.map(d => d.gdp_s / 1e9), borderColor: '#7f8c8d', backgroundColor: '#7f8c8d', tension: 0.2, borderDash: [5, 5] },
+                                { label: `PIB ${dataPoints[0].target}`, data: dataPoints.map(d => d.gdp_t / 1e9), borderColor: '#3498db', backgroundColor: '#3498db', tension: 0.2 }
+                            ]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: { tooltip: { callbacks: { label: (c) => c.dataset.label + ': ' + c.raw.toFixed(2) + ' Bi' } } },
+                            scales: {
+                                y: { title: {display:true, text:'PIB (Bilhões USD)'} }
+                            }
+                        }
+                    }));
+                });
+            }
+
+            function generateCaseHTML(id) {
+                return `
+                    <aside class="sidebar">
+                        <div class="sidebar-header"><span>Parâmetros</span> <i class="fas fa-sliders-h"></i></div>
+                        <form onsubmit="event.preventDefault(); runAnalysis('${id}');">
+                            <div class="year-input-group"><label>📅 Ano:</label><input type="number" id="year-${id}" value="2023" onchange="refreshData('${id}')"></div>
+                            <div class="form-group"><label>🛡️ Sancionador</label><input type="text" id="sanctioner-${id}" placeholder="Ex: USA" onblur="fetchData('${id}', 'SANCTIONER')"></div>
+                            <div class="form-group"><label>🎯 País Alvo</label><input type="text" id="target-${id}" placeholder="Ex: China" onblur="fetchData('${id}', 'TARGET')"></div>
+                            <div class="data-display">
+                                <div style="font-size:0.75rem; color:#7f8c8d; margin-bottom:10px; text-align:center;"><i class="fas fa-info-circle"></i> Valores Manuais (Bilhões US$)</div>
+                                <div class="data-row"><span>PIB Alvo:</span> <input type="number" step="any" class="manual-input" id="inp_gdpT-${id}"></div>
+                                <div class="data-row"><span>PIB Sancionador:</span> <input type="number" step="any" class="manual-input" id="inp_gdpS-${id}"></div>
+                                <div class="data-row"><span>Imp. Totais Alvo:</span> <input type="number" step="any" class="manual-input" id="inp_impT-${id}"></div>
+                                <div class="data-row"><span>Reservas Alvo:</span> <input type="number" step="any" class="manual-input" id="inp_resT-${id}"></div>
+                                <div class="data-row"><span>Comércio Bilateral:</span> <input type="number" step="any" class="manual-input" id="inp_trade-${id}" style="color:var(--accent); font-weight:bold;"></div>
+                            </div>
+                            <div class="form-group"><label>Retórica do Alvo</label><textarea id="rhetoric-${id}" rows="3" placeholder="Discurso oficial..."></textarea></div>
+                            <button class="btn-analyze" id="btnRun-${id}"><i class="fas fa-play"></i> Analisar Resposta</button>
+                        </form>
+                    </aside>
+                    <main class="dashboard-area" id="resultArea-${id}"><div class="empty-state"><i class="fas fa-chart-pie" style="font-size: 3rem;"></i><h3>Aguardando Dados</h3></div></main>
+                `;
+            }
+
+            function renderCharts(id, data, s_name, t_name) {
+                if (chartInstances[id]) {
+                    if(chartInstances[id].gdp) chartInstances[id].gdp.destroy();
+                    if(chartInstances[id].dep) chartInstances[id].dep.destroy();
+                } else { chartInstances[id] = {}; }
+
+                const ctxGDP = document.getElementById(`chart-gdp-${id}`).getContext('2d');
+                chartInstances[id].gdp = new Chart(ctxGDP, {
+                    type: 'bar',
+                    data: { labels: [s_name, t_name], datasets: [{ label: 'PIB (Bi USD)', data: [data.gdp_sanctioner / 1e9, data.gdp_target / 1e9], backgroundColor: ['#2c3e50', '#3498db'] }] },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } } } }
+                });
+
+                const dep_s = (data.trade / data.gdp_sanctioner) * 100;
+                const dep_t = (data.trade / data.gdp_target) * 100;
+                const ctxDep = document.getElementById(`chart-dep-${id}`).getContext('2d');
+                chartInstances[id].dep = new Chart(ctxDep, {
+                    type: 'bar',
+                    data: { labels: [`Em ${s_name}`, `Em ${t_name}`], datasets: [{ label: 'Dependência (%)', data: [dep_s, dep_t], backgroundColor: ['#95a5a6', '#e74c3c'] }] },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => c.raw.toFixed(2) + '%' } } } }
+                });
+            }
+
+            async function fetchData(id, type) {
+                const val = document.getElementById(type === 'TARGET' ? `target-${id}` : `sanctioner-${id}`).value;
+                const year = document.getElementById(`year-${id}`).value;
+                if(val.length < 2) return;
                 try {
-                    const res = await fetch(`http://localhost:5000/api/trade?target=${t}&sanctioner=${s}&year=${document.getElementById(`year-${id}`).value}`);
-                    const d = await res.json();
-                    if(d.total_trade) document.getElementById(`inp_trade-${id}`).value = (d.total_trade/1e9).toFixed(2);
+                    const res = await fetch(`http://localhost:5000/api/country/${val}?year=${year}`);
+                    const data = await res.json();
+                    if(!data.error) {
+                        const setVal = (eid, v) => document.getElementById(eid).value = v ? (v/1e9).toFixed(2) : "";
+                        if(data.gdp_nominal) setVal(type === 'TARGET' ? `inp_gdpT-${id}` : `inp_gdpS-${id}`, data.gdp_nominal);
+                        if(type === 'TARGET') { setVal(`inp_impT-${id}`, data.imports_total); setVal(`inp_resT-${id}`, data.international_reserves); }
+                    }
+                    checkTrade(id);
                 } catch(e) {}
             }
-        }
 
-        async function runAnalysis(id) {
-            const getRaw = (eid) => { const v = document.getElementById(eid).value; return v ? parseFloat(v)*1e9 : ""; };
-            const t_name = document.getElementById(`target-${id}`).value;
-            const s_name = document.getElementById(`sanctioner-${id}`).value;
-            const year = document.getElementById(`year-${id}`).value;
+            async function checkTrade(id) {
+                const t = document.getElementById(`target-${id}`).value;
+                const s = document.getElementById(`sanctioner-${id}`).value;
+                if(t && s) {
+                    try {
+                        const res = await fetch(`http://localhost:5000/api/trade?target=${t}&sanctioner=${s}&year=${document.getElementById(`year-${id}`).value}`);
+                        const d = await res.json();
+                        if(d.total_trade) document.getElementById(`inp_trade-${id}`).value = (d.total_trade/1e9).toFixed(2);
+                    } catch(e) {}
+                }
+            }
 
-            const payload = {
-                target: t_name, sanctioner: s_name, year: year,
-                rhetoric: document.getElementById(`rhetoric-${id}`).value,
-                manual_gdp_target: getRaw(`inp_gdpT-${id}`),
-                manual_gdp_sanctioner: getRaw(`inp_gdpS-${id}`),
-                manual_imports_target: getRaw(`inp_impT-${id}`),
-                manual_reserves_target: getRaw(`inp_resT-${id}`),
-                manual_trade_val: getRaw(`inp_trade-${id}`)
-            };
+            async function runAnalysis(id) {
+                const getRaw = (eid) => { const v = document.getElementById(eid).value; return v ? parseFloat(v)*1e9 : ""; };
+                const t_name = document.getElementById(`target-${id}`).value;
+                const s_name = document.getElementById(`sanctioner-${id}`).value;
+                const year = document.getElementById(`year-${id}`).value;
 
-            const btn = document.getElementById(`btnRun-${id}`);
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
-            
-            try {
-                const res = await fetch('http://localhost:5000/api/analyze', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                const json = await res.json();
-                renderReport(id, json);
-
-                analysisResults[id] = {
-                    sanctioner: s_name, target: t_name, year: parseInt(year),
-                    asymmetry: json.metrics.asymmetry, dependency: json.metrics.dependency, theory: json.analysis.final_theory,
-                    gdp_s: json.data.gdp_sanctioner, gdp_t: json.data.gdp_target // SALVA PIB BRUTO
+                const payload = {
+                    target: t_name, sanctioner: s_name, year: year,
+                    rhetoric: document.getElementById(`rhetoric-${id}`).value,
+                    manual_gdp_target: getRaw(`inp_gdpT-${id}`),
+                    manual_gdp_sanctioner: getRaw(`inp_gdpS-${id}`),
+                    manual_imports_target: getRaw(`inp_impT-${id}`),
+                    manual_reserves_target: getRaw(`inp_resT-${id}`),
+                    manual_trade_val: getRaw(`inp_trade-${id}`)
                 };
-                updateOverviewTable(); 
 
-            } catch(e) { alert("Erro na análise."); }
-            finally { btn.innerHTML = '<i class="fas fa-play"></i> Analisar Resposta'; }
-        }
+                const btn = document.getElementById(`btnRun-${id}`);
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+                
+                try {
+                    const res = await fetch('http://localhost:5000/api/analyze', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                    const json = await res.json();
+                    renderReport(id, json);
 
-        function renderReport(id, data) {
-            const a = data.analysis;
-            const m = data.metrics;
-            const colors = { 'NEORREALISMO': '#34495e', 'LIBERALISMO': '#3498db', 'REALISMO DEFENSIVO': '#2c3e50', 'INSTITUCIONALISMO': '#2980b9' };
-            const mainColor = colors[a.final_theory.split(" ")[0]] || '#7f8c8d';
-            const s_name = document.getElementById(`sanctioner-${id}`).value || "Sancionador";
-            const t_name = document.getElementById(`target-${id}`).value || "Alvo";
+                    analysisResults[id] = {
+                        sanctioner: s_name, target: t_name, year: parseInt(year),
+                        asymmetry: json.metrics.asymmetry, dependency: json.metrics.dependency, theory: json.analysis.final_theory,
+                        gdp_s: json.data.gdp_sanctioner, gdp_t: json.data.gdp_target // SALVA PIB BRUTO
+                    };
+                    updateOverviewTable(); 
 
-            const html = `
-                <div class="verdict-header" style="border-left-color: ${mainColor}">
-                    <div><small style="text-transform:uppercase; color:#999; font-weight:bold;">Previsão da Resposta de ${t_name}</small><h2>${a.final_theory}</h2></div>
-                    <span style="background:${mainColor}; color:white; padding:5px 15px; border-radius:20px; font-size:0.8rem;">${a.conclusion}</span>
-                </div>
-                <div class="results-grid">
-                    <div class="metrics-column">
-                        <div class="kpi-card"><div class="kpi-label">Assimetria<br>de Poder</div><div class="kpi-val">${m.asymmetry.toFixed(1)}x</div></div>
-                        <div class="kpi-card"><div class="kpi-label">Dependência<br>Comercial</div><div class="kpi-val" style="color:${m.dependency > 5 ? '#e74c3c' : '#27ae60'}">${m.dependency.toFixed(2)}%</div></div>
-                        <div class="kpi-card"><div class="kpi-label">Resiliência<br>(Meses)</div><div class="kpi-val">${data.data.resilience_months.toFixed(1)} m</div></div>
-                        <div class="analysis-box" style="margin-top:auto;"><div class="box-header" style="color:#e67e22;"><i class="fas fa-comments"></i> Análise do Discurso</div><span class="theory-tag" style="background:#e67e22;">${a.rhetoric_theory}</span><p style="font-size:0.9rem; color:#555;">${a.rhetoric_explanation}</p></div>
+                } catch(e) { alert("Erro na análise."); }
+                finally { btn.innerHTML = '<i class="fas fa-play"></i> Analisar Resposta'; }
+            }
+
+            function renderReport(id, data) {
+                const a = data.analysis;
+                const m = data.metrics;
+                const colors = { 'NEORREALISMO': '#34495e', 'LIBERALISMO': '#3498db', 'REALISMO DEFENSIVO': '#2c3e50', 'INSTITUCIONALISMO': '#2980b9' };
+                const mainColor = colors[a.final_theory.split(" ")[0]] || '#7f8c8d';
+                const s_name = document.getElementById(`sanctioner-${id}`).value || "Sancionador";
+                const t_name = document.getElementById(`target-${id}`).value || "Alvo";
+
+                const html = `
+                    <div class="verdict-header" style="border-left-color: ${mainColor}">
+                        <div><small style="text-transform:uppercase; color:#999; font-weight:bold;">Previsão da Resposta de ${t_name}</small><h2>${a.final_theory}</h2></div>
+                        <span style="background:${mainColor}; color:white; padding:5px 15px; border-radius:20px; font-size:0.8rem;">${a.conclusion}</span>
                     </div>
-                    <div class="chart-column">
-                        <div class="chart-container"><div class="chart-title">Assimetria de Poder (PIB)</div><div style="height:150px"><canvas id="chart-gdp-${id}"></canvas></div></div>
-                        <div class="chart-container" style="border-top:1px solid #eee; margin-top:10px; padding-top:10px;"><div class="chart-title">Vulnerabilidade (% Comércio/PIB)</div><div style="height:150px"><canvas id="chart-dep-${id}"></canvas></div></div>
+                    <div class="results-grid">
+                        <div class="metrics-column">
+                            <div class="kpi-card"><div class="kpi-label">Assimetria<br>de Poder</div><div class="kpi-val">${m.asymmetry.toFixed(1)}x</div></div>
+                            <div class="kpi-card"><div class="kpi-label">Dependência<br>Comercial</div><div class="kpi-val" style="color:${m.dependency > 5 ? '#e74c3c' : '#27ae60'}">${m.dependency.toFixed(2)}%</div></div>
+                            <div class="kpi-card"><div class="kpi-label">Resiliência<br>(Meses)</div><div class="kpi-val">${data.data.resilience_months.toFixed(1)} m</div></div>
+                            <div class="analysis-box" style="margin-top:auto;"><div class="box-header" style="color:#e67e22;"><i class="fas fa-comments"></i> Análise do Discurso</div><span class="theory-tag" style="background:#e67e22;">${a.rhetoric_theory}</span><p style="font-size:0.9rem; color:#555;">${a.rhetoric_explanation}</p></div>
+                        </div>
+                        <div class="chart-column">
+                            <div class="chart-container"><div class="chart-title">Assimetria de Poder (PIB)</div><div style="height:150px"><canvas id="chart-gdp-${id}"></canvas></div></div>
+                            <div class="chart-container" style="border-top:1px solid #eee; margin-top:10px; padding-top:10px;"><div class="chart-title">Vulnerabilidade (% Comércio/PIB)</div><div style="height:150px"><canvas id="chart-dep-${id}"></canvas></div></div>
+                        </div>
                     </div>
-                </div>
-                <div class="narrative-card"><h4 style="margin:0 0 10px 0; color:${mainColor}; border-bottom:1px solid #eee;">Diagnóstico Detalhado da Reação</h4>${a.narrative}</div>
-            `;
-            document.getElementById(`resultArea-${id}`).innerHTML = html;
-            renderCharts(id, data.data, s_name, t_name);
-            document.getElementById(`title-${id}`).innerText = `${t_name} (${document.getElementById(`year-${id}`).value})`;
-        }
+                    <div class="narrative-card"><h4 style="margin:0 0 10px 0; color:${mainColor}; border-bottom:1px solid #eee;">Diagnóstico Detalhado da Reação</h4>${a.narrative}</div>
+                `;
+                document.getElementById(`resultArea-${id}`).innerHTML = html;
+                renderCharts(id, data.data, s_name, t_name);
+                document.getElementById(`title-${id}`).innerText = `${t_name} (${document.getElementById(`year-${id}`).value})`;
+            }
 
-        function openHelp() { document.getElementById('helpModal').style.display = 'flex'; }
-        function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
-        function switchHelpTab(t) { document.querySelectorAll('.help-section').forEach(e => e.classList.remove('active')); document.getElementById(`help-${t}`).classList.add('active'); }
-        window.onclick = (e) => { if(e.target == document.getElementById('helpModal')) closeHelp(); };
-    </script>
-</body>
-</html>
+            function openHelp() { document.getElementById('helpModal').style.display = 'flex'; }
+            function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
+            function switchHelpTab(t) { document.querySelectorAll('.help-section').forEach(e => e.classList.remove('active')); document.getElementById(`help-${t}`).classList.add('active'); }
+            window.onclick = (e) => { if(e.target == document.getElementById('helpModal')) closeHelp(); };
+        </script>
+    </body>
+    </html>
