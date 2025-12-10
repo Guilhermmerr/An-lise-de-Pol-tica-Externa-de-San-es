@@ -103,42 +103,32 @@ def analisar_retorica(texto):
     except: return "Neutro", []
 
 def gerar_diagnostico_detalhado(teoria_final, asym, dep, resil, rhet_tone, words, alvo, sancionador):
-    """
-    Texto focado na REAÇÃO do país alvo.
-    """
     argumentos = []
     
-    # Contextualização da resposta
     argumentos.append(f"A projeção da <b>resposta de {alvo}</b> baseia-se nos seguintes incentivos estruturais:")
 
-    # 1. Argumento Material (Incentivo Estrutural)
     if asym > 10:
         argumentos.append(f"Devido à <b>assimetria de poder extrema ({asym:.1f}x)</b> a favor de {sancionador}, a sobrevivência do Estado torna-se a prioridade. A teoria prevê que {alvo} buscará resistir para garantir sua soberania (Lógica Neorrealista).")
     elif dep > 5:
-        argumentos.append(f"Devido à <b>alta dependência comercial ({dep:.1f}% do PIB)</b>, o custo de uma ruptura seria catastrófico. A teoria Liberal prevê que {alvo} tenderá a ceder ou negociar para evitar o colapso econômico.")
+        argumentos.append(f"Devido à <b>alta dependência comercial ({dep:.1f}% do PIB)</b>, o custo de uma ruptura seria catastrófico. A teoria Liberal prevê que {alvo} tenderá a ceder ou negociar.")
     else:
-        argumentos.append(f"Com uma dependência baixa ({dep:.1f}%) e assimetria moderada, {alvo} possui margem de manobra para resistir sem riscos imediatos à sua existência (Realismo Clássico).")
+        argumentos.append(f"Com uma dependência baixa ({dep:.1f}%) e assimetria moderada, {alvo} possui margem de manobra para resistir sem riscos imediatos (Realismo Clássico).")
 
-    # 2. Capacidade de Resistência (Resiliência)
     if resil > 15:
-        argumentos.append(f"Além disso, a <b>alta resiliência ({resil:.1f} meses de reservas)</b> fornece um 'escudo financeiro', permitindo que {alvo} sustente uma postura de confrontação por longo prazo (Realismo Defensivo).")
+        argumentos.append(f"Além disso, a <b>alta resiliência ({resil:.1f} meses de reservas)</b> fornece um 'escudo financeiro', permitindo que {alvo} sustente uma postura de confrontação (Realismo Defensivo).")
     elif resil < 3:
-        argumentos.append(f"Contudo, a <b>escassez de reservas ({resil:.1f} meses)</b> limita drasticamente a capacidade de {alvo} de sustentar uma guerra comercial prolongada.")
+        argumentos.append(f"Contudo, a <b>escassez de reservas ({resil:.1f} meses)</b> limita drasticamente a capacidade de {alvo} de sustentar uma guerra comercial.")
 
-    # 3. Fator Ideacional (O que o governo diz)
     if rhet_tone != "Neutro":
         termos = ", ".join([f"'{w}'" for w in words[:3]])
-        argumentos.append(f"Politicamente, o discurso oficial sinaliza uma postura <b>{rhet_tone.title()}</b> (ex: uso de termos como {termos}), reforçando a direção apontada pelos dados.")
+        argumentos.append(f"Politicamente, o discurso oficial sinaliza uma postura <b>{rhet_tone.title()}</b> (ex: {termos}), reforçando a direção apontada pelos dados.")
     
-    # 4. Conclusão da Reação
     if "DIVERGENTE" in teoria_final:
-        argumentos.append(f"<b>Previsão:</b> O cenário é DIVERGENTE. Economicamente, {alvo} deveria negociar (Liberalismo), mas politicamente sinaliza confronto ({rhet_tone}). Risco de erro de cálculo elevado.")
+        argumentos.append(f"<b>Previsão:</b> O cenário é DIVERGENTE. Economicamente, {alvo} deveria negociar, mas politicamente sinaliza confronto ({rhet_tone}).")
     else:
         argumentos.append(f"<b>Previsão:</b> Todos os indicadores convergem para uma reação guiada pelo <b>{teoria_final}</b>.")
 
     return " ".join(argumentos)
-
-# --- ROTAS ---
 
 @app.route('/api/country/<term>')
 def get_country_route(term):
@@ -168,7 +158,6 @@ def analyze():
         iso_t = buscar_iso(d.get('target'))
         iso_s = buscar_iso(d.get('sanctioner'))
 
-        # Lógica de Prioridade (Manual > CSV)
         def resolver_valor(key_manual, df, iso, ano):
             val_manual = d.get(key_manual)
             if val_manual is not None and str(val_manual).strip() != "":
@@ -186,13 +175,11 @@ def analyze():
         else:
             trade = get_trade(iso_t, iso_s, year)
 
-        # Cálculos
         asym = (gdp_s / gdp_t) if gdp_t > 0 else 0
         dep = ((trade / gdp_t) * 100) if gdp_t > 0 else 0
         burn_rate = (imp_t / 12) if imp_t > 0 else 0
         resil = (res_t / burn_rate) if burn_rate > 0 else 0
 
-        # Árvore de Decisão (Focada na resposta do Alvo)
         t_mat = "INCONCLUSIVO"
         expl_mat = "Dados insuficientes."
         
@@ -209,7 +196,6 @@ def analyze():
         final = t_mat
         conclusao = "Baseada em incentivos materiais."
         if t_ret != "Neutro":
-            # Simplificação da convergência
             if t_mat.split()[0] == t_ret: conclusao = "Convergência (Discurso e Dados alinham)."
             elif "REALISMO" in t_mat and t_ret == "CONSTRUTIVISMO": final = "REALISMO CONSTRUTIVISTA"
             else: final = "DIVERGENTE (Risco de Erro)"
@@ -217,7 +203,13 @@ def analyze():
         narrativa = gerar_diagnostico_detalhado(final, asym, dep, resil, t_ret, words, d.get('target'), d.get('sanctioner'))
 
         return jsonify({
-            "data": { "gdp_target": gdp_t, "resilience_months": resil, "trade": trade, "reserves": res_t },
+            "data": { 
+                "gdp_target": gdp_t, 
+                "gdp_sanctioner": gdp_s,  # NOVO CAMPO ADICIONADO
+                "resilience_months": resil, 
+                "trade": trade, 
+                "reserves": res_t 
+            },
             "metrics": { "asymmetry": asym, "dependency": dep, "rhetoric_tone": t_ret },
             "analysis": {
                 "material_theory": t_mat, 
